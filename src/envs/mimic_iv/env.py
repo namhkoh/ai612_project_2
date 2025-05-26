@@ -8,6 +8,8 @@ from src.envs.mimic_iv.tools.sql_db_query import SqlDbQuery
 from src.envs.mimic_iv.tools.value_substring_search import ValueSubstringSearch
 # TODO: import your own tools here
 from src.envs.mimic_iv.tools.clinical_term_mapper import ClinicalTermMapper, QueryAnalyzer
+from src.envs.mimic_iv.tools.smart_schema_assistant import SmartSchemaAssistant, QueryValidator
+from src.envs.mimic_iv.tools.query_optimizer import QueryOptimizer, ExecutionHelper
 from sqlalchemy import create_engine
 
 FOLDER_PATH = os.path.dirname(__file__)
@@ -34,6 +36,10 @@ class MimicIVEnv(Env):
         # TODO: add your own tools here
         clinical_term_mapper = ClinicalTermMapper(engine=engine)
         query_analyzer = QueryAnalyzer(engine=engine)
+        smart_schema_assistant = SmartSchemaAssistant(engine=engine)
+        query_validator = QueryValidator(engine=engine)
+        query_optimizer = QueryOptimizer(engine=engine)
+        execution_helper = ExecutionHelper(engine=engine)
 
         super().__init__(
             tools=[
@@ -44,6 +50,10 @@ class MimicIVEnv(Env):
                 # TODO: add your own tools here
                 clinical_term_mapper,
                 query_analyzer,
+                smart_schema_assistant,
+                query_validator,
+                query_optimizer,
+                execution_helper,
             ],
             tasks=tasks,
             user_strategy=user_strategy,
