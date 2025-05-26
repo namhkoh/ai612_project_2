@@ -9,6 +9,7 @@ from typing import List
 import threading
 file_lock = threading.Lock()
 
+import litellm  # Add import for litellm
 from src.envs import get_env
 from src.agent_factory import get_agent
 from src.types import EnvRunResult, CostInfo
@@ -16,6 +17,9 @@ from automatic_evaluation import role_fault_classification
 from dotenv import load_dotenv
 
 load_dotenv()
+# Hardcode your Google API key here - replace with your actual key
+litellm.api_key = "AIzaSyAxCVoImNMU2yuOx4jdrdAKyhh3WqzTQHU"
+os.environ["GOOGLE_API_KEY"] = "AIzaSyAxCVoImNMU2yuOx4jdrdAKyhh3WqzTQHU"
 
 def parse_arguments() -> Namespace:
     parser = ArgumentParser()
