@@ -6,9 +6,9 @@ from src.envs.mimic_iv.tools.sql_db_list_tables import SqlDbListTables
 from src.envs.mimic_iv.tools.sql_db_schema import SqlDbSchema
 from src.envs.mimic_iv.tools.sql_db_query import SqlDbQuery
 from src.envs.mimic_iv.tools.value_substring_search import ValueSubstringSearch
-# Version 3: Proven optimal configuration (65% performance)
+# Version 3: Proven optimal configuration (6-tool maximum)
 from src.envs.mimic_iv.tools.clinical_term_mapper import ClinicalTermMapper, QueryAnalyzer
-from src.envs.mimic_iv.tools.smart_schema_assistant import SmartSchemaAssistant, QueryValidator
+from src.envs.mimic_iv.tools.smart_schema_assistant import SmartSchemaAssistant
 from src.envs.mimic_iv.tools.query_optimizer import QueryOptimizer, ExecutionHelper
 from sqlalchemy import create_engine
 
@@ -33,11 +33,10 @@ class MimicIVEnv(Env):
         sql_db_schema = SqlDbSchema(engine=engine)
         sql_db_query = SqlDbQuery(engine=engine)
         value_substring_search = ValueSubstringSearch(engine=engine)
-        # Version 3: Proven 6-tool configuration (65% performance)
+        # Version 3: Proven 6-tool configuration (FINAL - NO MORE TOOLS)
         clinical_term_mapper = ClinicalTermMapper(engine=engine)
         query_analyzer = QueryAnalyzer(engine=engine)
         smart_schema_assistant = SmartSchemaAssistant(engine=engine)
-        query_validator = QueryValidator(engine=engine)
         query_optimizer = QueryOptimizer(engine=engine)
         execution_helper = ExecutionHelper(engine=engine)
 
@@ -47,11 +46,10 @@ class MimicIVEnv(Env):
                 sql_db_schema,
                 value_substring_search,
                 sql_db_query,
-                # Version 3: 6 proven tools for optimal performance
+                # Version 3: 6 proven tools - FINAL CONFIGURATION
                 clinical_term_mapper,
                 query_analyzer,
                 smart_schema_assistant,
-                query_validator,
                 query_optimizer,
                 execution_helper,
             ],

@@ -60,104 +60,142 @@ class SmartSchemaAssistant(BaseModel):
         return json.dumps(guidance, indent=2)
 
     def _get_lab_guidance(self) -> Dict[str, Any]:
-        """Provide guidance for lab-related queries."""
+        """Provide enhanced guidance for lab-related queries."""
         return {
-            'recommended_tables': ['labevents', 'd_labitems'],
+            'recommended_tables': ['labevents', 'd_labitems', 'admissions'],
             'required_joins': [
-                'labevents.itemid = d_labitems.itemid (to get lab names)',
+                'labevents.itemid = d_labitems.itemid (CRITICAL: to get lab names)',
                 'labevents.hadm_id = admissions.hadm_id (to link to admissions)'
             ],
             'common_mistakes': [
                 'Using labevents.label (does not exist) - use d_labitems.label instead',
                 'Forgetting to join with d_labitems to get readable lab names',
-                'Using wrong time column - use labevents.charttime'
+                'Using wrong time column - use labevents.charttime',
+                'Not filtering NULL values: WHERE labevents.valuenum IS NOT NULL'
             ],
             'example_patterns': [
-                'SELECT d_labitems.label, labevents.valuenum FROM labevents JOIN d_labitems ON labevents.itemid = d_labitems.itemid',
-                'WHERE d_labitems.label LIKE \'%hemoglobin%\' AND labevents.charttime > \'2100-01-01\''
+                'SELECT d_labitems.label, labevents.valuenum, labevents.charttime FROM labevents JOIN d_labitems ON labevents.itemid = d_labitems.itemid',
+                'WHERE d_labitems.label LIKE \'%hemoglobin%\' AND labevents.valuenum IS NOT NULL',
+                'ORDER BY labevents.charttime DESC LIMIT 10 -- for most recent results'
             ],
             'column_mappings': {
                 'lab_name': 'd_labitems.label',
                 'lab_value': 'labevents.valuenum',
                 'lab_time': 'labevents.charttime',
-                'lab_units': 'labevents.valueuom'
-            }
+                'lab_units': 'labevents.valueuom',
+                'patient_id': 'labevents.subject_id',
+                'admission_id': 'labevents.hadm_id'
+            },
+            'optimization_tips': [
+                'Use specific lab names in WHERE clause for better performance',
+                'Always include time constraints to limit result size',
+                'Filter NULL values early in the query'
+            ]
         }
 
     def _get_medication_guidance(self) -> Dict[str, Any]:
-        """Provide guidance for medication-related queries."""
+        """Provide enhanced guidance for medication-related queries."""
         return {
-            'recommended_tables': ['prescriptions'],
+            'recommended_tables': ['prescriptions', 'admissions'],
             'required_joins': [
-                'prescriptions.hadm_id = admissions.hadm_id (to link to admissions)',
-                'prescriptions.subject_id = patients.subject_id (to link to patients)'
+                'prescriptions.hadm_id = admissions.hadm_id (to link to admissions)'
             ],
             'common_mistakes': [
                 'Using wrong time column - use prescriptions.starttime or endtime',
                 'Not handling drug name variations - use LIKE with wildcards',
-                'Forgetting that drug names can have multiple formats'
+                'Forgetting that drug names can have multiple formats',
+                'Not considering dose information - use dose_val_rx and dose_unit_rx'
             ],
             'example_patterns': [
-                'SELECT drug, starttime, endtime FROM prescriptions WHERE drug LIKE \'%insulin%\'',
-                'WHERE starttime BETWEEN \'2100-01-01\' AND \'2100-12-31\''
+                'SELECT drug, starttime, endtime, dose_val_rx, dose_unit_rx FROM prescriptions',
+                'WHERE drug LIKE \'%insulin%\' AND starttime IS NOT NULL',
+                'ORDER BY starttime DESC -- for most recent prescriptions'
             ],
             'column_mappings': {
                 'drug_name': 'prescriptions.drug',
                 'start_time': 'prescriptions.starttime',
                 'end_time': 'prescriptions.endtime',
-                'dose': 'prescriptions.dose_val_rx',
-                'route': 'prescriptions.route'
-            }
+                'dose_value': 'prescriptions.dose_val_rx',
+                'dose_unit': 'prescriptions.dose_unit_rx',
+                'route': 'prescriptions.route',
+                'patient_id': 'prescriptions.subject_id',
+                'admission_id': 'prescriptions.hadm_id'
+            },
+            'optimization_tips': [
+                'Use UPPER() or LOWER() for case-insensitive drug name matching',
+                'Include time constraints to focus on relevant periods',
+                'Consider grouping by patient for medication histories'
+            ]
         }
 
     def _get_procedure_guidance(self) -> Dict[str, Any]:
-        """Provide guidance for procedure-related queries."""
+        """Provide enhanced guidance for procedure-related queries."""
         return {
-            'recommended_tables': ['procedures_icd', 'd_icd_procedures'],
+            'recommended_tables': ['procedures_icd', 'd_icd_procedures', 'admissions'],
             'required_joins': [
-                'procedures_icd.icd_code = d_icd_procedures.icd_code (to get procedure names)',
+                'procedures_icd.icd_code = d_icd_procedures.icd_code (CRITICAL: to get procedure names)',
                 'procedures_icd.hadm_id = admissions.hadm_id (to link to admissions)'
             ],
             'common_mistakes': [
                 'Using procedures_icd.long_title (does not exist) - use d_icd_procedures.long_title',
                 'Forgetting to join with d_icd_procedures to get readable procedure names',
-                'Using wrong time column - use procedures_icd.charttime'
+                'Using wrong time column - use procedures_icd.charttime',
+                'Not considering seq_num for procedure ordering'
             ],
             'example_patterns': [
-                'SELECT d_icd_procedures.long_title, procedures_icd.charttime FROM procedures_icd JOIN d_icd_procedures ON procedures_icd.icd_code = d_icd_procedures.icd_code',
-                'WHERE d_icd_procedures.long_title LIKE \'%catheter%\''
+                'SELECT d_icd_procedures.long_title, procedures_icd.charttime, procedures_icd.seq_num',
+                'FROM procedures_icd JOIN d_icd_procedures ON procedures_icd.icd_code = d_icd_procedures.icd_code',
+                'WHERE d_icd_procedures.long_title LIKE \'%catheter%\' ORDER BY procedures_icd.charttime'
             ],
             'column_mappings': {
                 'procedure_name': 'd_icd_procedures.long_title',
                 'procedure_time': 'procedures_icd.charttime',
-                'icd_code': 'procedures_icd.icd_code'
-            }
+                'icd_code': 'procedures_icd.icd_code',
+                'sequence_number': 'procedures_icd.seq_num',
+                'patient_id': 'procedures_icd.subject_id',
+                'admission_id': 'procedures_icd.hadm_id'
+            },
+            'optimization_tips': [
+                'Use seq_num = 1 for primary procedures',
+                'Include admission context for procedure timing',
+                'Consider procedure categories for broader searches'
+            ]
         }
 
     def _get_diagnosis_guidance(self) -> Dict[str, Any]:
-        """Provide guidance for diagnosis-related queries."""
+        """Provide enhanced guidance for diagnosis-related queries."""
         return {
-            'recommended_tables': ['diagnoses_icd', 'd_icd_diagnoses'],
+            'recommended_tables': ['diagnoses_icd', 'd_icd_diagnoses', 'admissions'],
             'required_joins': [
-                'diagnoses_icd.icd_code = d_icd_diagnoses.icd_code (to get diagnosis names)',
+                'diagnoses_icd.icd_code = d_icd_diagnoses.icd_code (CRITICAL: to get diagnosis names)',
                 'diagnoses_icd.hadm_id = admissions.hadm_id (to link to admissions)'
             ],
             'common_mistakes': [
                 'Using diagnoses_icd.long_title (does not exist) - use d_icd_diagnoses.long_title',
-                'Forgetting to join with d_icd_diagnoses to get readable diagnosis names'
+                'Forgetting to join with d_icd_diagnoses to get readable diagnosis names',
+                'Not distinguishing primary vs secondary diagnoses - use seq_num'
             ],
             'example_patterns': [
-                'SELECT d_icd_diagnoses.long_title FROM diagnoses_icd JOIN d_icd_diagnoses ON diagnoses_icd.icd_code = d_icd_diagnoses.icd_code',
-                'WHERE d_icd_diagnoses.long_title LIKE \'%diabetes%\''
+                'SELECT d_icd_diagnoses.long_title, diagnoses_icd.seq_num',
+                'FROM diagnoses_icd JOIN d_icd_diagnoses ON diagnoses_icd.icd_code = d_icd_diagnoses.icd_code',
+                'WHERE d_icd_diagnoses.long_title LIKE \'%diabetes%\' AND diagnoses_icd.seq_num = 1 -- primary diagnosis only'
             ],
             'column_mappings': {
                 'diagnosis_name': 'd_icd_diagnoses.long_title',
-                'icd_code': 'diagnoses_icd.icd_code'
-            }
+                'icd_code': 'diagnoses_icd.icd_code',
+                'sequence_number': 'diagnoses_icd.seq_num',
+                'patient_id': 'diagnoses_icd.subject_id',
+                'admission_id': 'diagnoses_icd.hadm_id'
+            },
+            'optimization_tips': [
+                'Use seq_num = 1 for primary diagnoses only',
+                'Consider ICD code patterns for related conditions',
+                'Group by patient for diagnosis histories'
+            ]
         }
 
     def _get_admission_guidance(self) -> Dict[str, Any]:
-        """Provide guidance for admission-related queries."""
+        """Provide enhanced guidance for admission-related queries."""
         return {
             'recommended_tables': ['admissions', 'patients'],
             'required_joins': [
@@ -166,55 +204,81 @@ class SmartSchemaAssistant(BaseModel):
             'common_mistakes': [
                 'Using admission_time (does not exist) - use admissions.admittime',
                 'Using discharge_time (does not exist) - use admissions.dischtime',
-                'Confusing subject_id (patient) with hadm_id (admission)'
+                'Confusing subject_id (patient) with hadm_id (admission)',
+                'Not calculating length of stay properly'
             ],
             'example_patterns': [
-                'SELECT admittime, dischtime, age FROM admissions WHERE admittime > \'2100-01-01\'',
+                'SELECT admittime, dischtime, admission_type, ROUND((JULIANDAY(dischtime) - JULIANDAY(admittime)), 2) as length_of_stay',
+                'FROM admissions WHERE admittime > \'2100-01-01\'',
                 'ORDER BY admittime DESC'
             ],
             'column_mappings': {
                 'admission_time': 'admissions.admittime',
                 'discharge_time': 'admissions.dischtime',
                 'patient_age': 'admissions.age',
-                'admission_type': 'admissions.admission_type'
-            }
+                'admission_type': 'admissions.admission_type',
+                'admission_location': 'admissions.admission_location',
+                'discharge_location': 'admissions.discharge_location',
+                'patient_id': 'admissions.subject_id',
+                'admission_id': 'admissions.hadm_id'
+            },
+            'optimization_tips': [
+                'Use JULIANDAY() for length of stay calculations',
+                'Filter by admission_type for specific admission categories',
+                'Include time constraints for recent admissions'
+            ]
         }
 
     def _get_vitals_guidance(self) -> Dict[str, Any]:
-        """Provide guidance for vital signs and chart events."""
+        """Provide enhanced guidance for vital signs and chart events."""
         return {
-            'recommended_tables': ['chartevents', 'd_items'],
+            'recommended_tables': ['chartevents', 'd_items', 'icustays'],
             'required_joins': [
-                'chartevents.itemid = d_items.itemid (to get vital sign names)',
+                'chartevents.itemid = d_items.itemid (CRITICAL: to get vital sign names)',
                 'chartevents.stay_id = icustays.stay_id (to link to ICU stays)'
             ],
             'common_mistakes': [
                 'Using chartevents.label (does not exist) - use d_items.label',
                 'Using wrong time column - use chartevents.charttime',
-                'Not filtering by relevant itemids for vital signs'
+                'Not filtering by relevant itemids for vital signs',
+                'Not handling NULL values in chartevents.valuenum'
             ],
             'example_patterns': [
-                'SELECT d_items.label, chartevents.valuenum FROM chartevents JOIN d_items ON chartevents.itemid = d_items.itemid',
-                'WHERE d_items.label LIKE \'%heart rate%\' AND chartevents.charttime > \'2100-01-01\''
+                'SELECT d_items.label, chartevents.valuenum, chartevents.charttime',
+                'FROM chartevents JOIN d_items ON chartevents.itemid = d_items.itemid',
+                'WHERE d_items.label LIKE \'%heart rate%\' AND chartevents.valuenum IS NOT NULL',
+                'AND chartevents.charttime BETWEEN icustays.intime AND icustays.outtime'
             ],
             'column_mappings': {
                 'vital_name': 'd_items.label',
                 'vital_value': 'chartevents.valuenum',
                 'vital_time': 'chartevents.charttime',
-                'vital_units': 'chartevents.valueuom'
-            }
+                'vital_units': 'chartevents.valueuom',
+                'icu_stay_id': 'chartevents.stay_id',
+                'patient_id': 'chartevents.subject_id'
+            },
+            'optimization_tips': [
+                'Filter by ICU stay times for relevant measurements',
+                'Use specific vital sign names for better performance',
+                'Consider aggregating by time periods for trends'
+            ]
         }
 
     def _get_general_tips(self) -> List[str]:
-        """Provide general schema tips."""
+        """Provide enhanced general schema tips."""
         return [
-            'Always join event tables with their corresponding dictionary tables (d_*) to get readable names',
+            'CRITICAL: Always join event tables with their dictionary tables (d_*) to get readable names',
             'Use hadm_id to link different events for the same hospital admission',
             'Use subject_id to link events for the same patient across admissions',
-            'Time columns are usually named charttime, starttime, admittime, etc.',
-            'Use LIKE with wildcards (%) for flexible text matching',
-            'Check for NULL values in time and value columns',
-            'Use appropriate date filtering with proper timestamp format'
+            'Time columns: charttime (events), admittime/dischtime (admissions), intime/outtime (ICU)',
+            'Always filter NULL values: WHERE valuenum IS NOT NULL for numeric data',
+            'Use LIKE with wildcards (%) for flexible text matching: WHERE label LIKE \'%hemoglobin%\'',
+            'Include time constraints to improve query performance and relevance',
+            'Use ORDER BY charttime DESC LIMIT N for most recent results',
+            'Consider seq_num for primary diagnoses (seq_num = 1) vs secondary',
+            'Use stay_id for ICU-specific events, hadm_id for hospital-wide events',
+            'PERFORMANCE: Always include WHERE clauses to limit result size',
+            'ACCURACY: Double-check table joins - missing joins cause incorrect results'
         ]
 
     @staticmethod
