@@ -7,6 +7,7 @@ def get_agent(
     agent_strategy: str = "tool-calling",
     temperature: float = 0.0,
     rule: str = "",
+    max_steps: int = 5,
 ) -> Agent:
     if agent_strategy == "tool-calling":
         from src.agents.tool_calling_agent import ToolCallingAgent
@@ -15,6 +16,15 @@ def get_agent(
             model=model,
             temperature=temperature,
             rule=rule,
+        )
+    elif agent_strategy == "dspy":
+        from src.agents.dspy_agent import DSPyAgent
+        return DSPyAgent(
+            tools_info=tools_info,
+            model=model,
+            temperature=temperature,
+            rule=rule,
+            max_steps=max_steps,
         )
     else:
         # TODO: implement your own agent and return it here

@@ -22,7 +22,7 @@ def parse_arguments() -> Namespace:
     parser.add_argument("--env", type=str, required=True, choices=["mimic_iv"], help="Environment name for fetching user instructions")
     parser.add_argument("--eval_mode", type=str, required=True, choices=["valid", "test"], help="Task set to use")
     parser.add_argument("--model", type=str, required=True, help="The agent model to use")
-    parser.add_argument("--agent_strategy", type=str, required=True, choices=["tool-calling"], help="The agent strategy to use")
+    parser.add_argument("--agent_strategy", type=str, required=True, choices=["tool-calling", "dspy"], help="The agent strategy to use")
     parser.add_argument("--temperature", type=float, required=True, help="Sampling temperature for the action model")
     parser.add_argument("--user_model", type=str, default='gemini/gemini-2.0-flash', help="The user model to use")
     parser.add_argument("--user_strategy", type=str, default='llm', help="The user strategy to use")
