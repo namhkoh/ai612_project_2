@@ -3,5 +3,4 @@ streamlit
 litellm
 sqlalchemy
 python-dotenv
-dspy-ai
 func_timeout

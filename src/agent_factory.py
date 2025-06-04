@@ -17,15 +17,7 @@ def get_agent(
             temperature=temperature,
             rule=rule,
         )
-    elif agent_strategy == "dspy":
-        from src.agents.dspy_agent import DSPyAgent
-        return DSPyAgent(
-            tools_info=tools_info,
-            model=model,
-            temperature=temperature,
-            rule=rule,
-            max_steps=max_steps,
-        )
+
     else:
         # TODO: implement your own agent and return it here
         raise ValueError(f"Agent strategy {agent_strategy} not implemented. Erase this line after implementing your own agent.")
